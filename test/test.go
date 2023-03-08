@@ -10,15 +10,15 @@ import (
 // Cache excercises a httpcache.Cache implementation.
 func Cache(t *testing.T, cache httpcache.Cache) {
 	key := "testKey"
-	_, ok := cache.Get(key)
+	_, ok, _ := cache.Get(key)
 	if ok {
 		t.Fatal("retrieved key before adding it")
 	}
 
 	val := []byte("some bytes")
-	cache.Set(key, val)
+	_ = cache.Set(key, val)
 
-	retVal, ok := cache.Get(key)
+	retVal, ok, _ := cache.Get(key)
 	if !ok {
 		t.Fatal("could not retrieve an element we just added")
 	}
@@ -26,9 +26,9 @@ func Cache(t *testing.T, cache httpcache.Cache) {
 		t.Fatal("retrieved a different value than what we put in")
 	}
 
-	cache.Delete(key)
+	_ = cache.Delete(key)
 
-	_, ok = cache.Get(key)
+	_, ok, _ = cache.Get(key)
 	if ok {
 		t.Fatal("deleted key still present")
 	}

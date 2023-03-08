@@ -19,22 +19,24 @@ func cacheKey(key string) string {
 }
 
 // Get returns the response corresponding to key if present.
-func (c cache) Get(key string) (resp []byte, ok bool) {
+func (c cache) Get(key string) (resp []byte, ok bool, err error) {
 	item, err := redis.Bytes(c.Do("GET", cacheKey(key)))
 	if err != nil {
-		return nil, false
+		return nil, false, err
 	}
-	return item, true
+	return item, true, nil
 }
 
 // Set saves a response to the cache as key.
-func (c cache) Set(key string, resp []byte) {
-	c.Do("SET", cacheKey(key), resp)
+func (c cache) Set(key string, resp []byte) error {
+	_, err := c.Do("SET", cacheKey(key), resp)
+	return err
 }
 
 // Delete removes the response with key from the cache.
-func (c cache) Delete(key string) {
-	c.Do("DEL", cacheKey(key))
+func (c cache) Delete(key string) error {
+	_, err := c.Do("DEL", cacheKey(key))
+	return err
 }
 
 // NewWithClient returns a new Cache with the given redis connection.

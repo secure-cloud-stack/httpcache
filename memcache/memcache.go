@@ -1,3 +1,4 @@
+//go:build !appengine
 // +build !appengine
 
 // Package memcache provides an implementation of httpcache.Cache that uses
@@ -10,6 +11,7 @@ package memcache
 
 import (
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/secure-cloud-stack/httpcache"
 )
 
 // Cache is an implementation of httpcache.Cache that caches responses in a
@@ -25,36 +27,39 @@ func cacheKey(key string) string {
 }
 
 // Get returns the response corresponding to key if present.
-func (c *Cache) Get(key string) (resp []byte, ok bool) {
+func (c *Cache) Get(key string) (resp []byte, ok bool, err error) {
 	item, err := c.Client.Get(cacheKey(key))
 	if err != nil {
-		return nil, false
+		if err == memcache.ErrCacheMiss {
+			return nil, false, nil
+		}
+		return nil, false, err
 	}
-	return item.Value, true
+	return item.Value, true, nil
 }
 
 // Set saves a response to the cache as key.
-func (c *Cache) Set(key string, resp []byte) {
+func (c *Cache) Set(key string, resp []byte) error {
 	item := &memcache.Item{
 		Key:   cacheKey(key),
 		Value: resp,
 	}
-	c.Client.Set(item)
+	return c.Client.Set(item)
 }
 
 // Delete removes the response with key from the cache.
-func (c *Cache) Delete(key string) {
-	c.Client.Delete(cacheKey(key))
+func (c *Cache) Delete(key string) error {
+	return c.Client.Delete(cacheKey(key))
 }
 
 // New returns a new Cache using the provided memcache server(s) with equal
 // weight. If a server is listed multiple times, it gets a proportional amount
 // of weight.
-func New(server ...string) *Cache {
+func New(server ...string) httpcache.Cache {
 	return NewWithClient(memcache.New(server...))
 }
 
 // NewWithClient returns a new Cache with the given memcache client.
-func NewWithClient(client *memcache.Client) *Cache {
+func NewWithClient(client *memcache.Client) httpcache.Cache {
 	return &Cache{client}
 }
