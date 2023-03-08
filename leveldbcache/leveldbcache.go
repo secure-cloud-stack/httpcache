@@ -3,6 +3,7 @@
 package leveldbcache
 
 import (
+	"github.com/secure-cloud-stack/httpcache"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -12,23 +13,25 @@ type Cache struct {
 }
 
 // Get returns the response corresponding to key if present
-func (c *Cache) Get(key string) (resp []byte, ok bool) {
-	var err error
+func (c *Cache) Get(key string) (resp []byte, ok bool, err error) {
 	resp, err = c.db.Get([]byte(key), nil)
 	if err != nil {
-		return []byte{}, false
+		if err == leveldb.ErrNotFound {
+			return []byte{}, false, nil
+		}
+		return []byte{}, false, err
 	}
-	return resp, true
+	return resp, true, nil
 }
 
 // Set saves a response to the cache as key
-func (c *Cache) Set(key string, resp []byte) {
-	c.db.Put([]byte(key), resp, nil)
+func (c *Cache) Set(key string, resp []byte) error {
+	return c.db.Put([]byte(key), resp, nil)
 }
 
 // Delete removes the response with key from the cache
-func (c *Cache) Delete(key string) {
-	c.db.Delete([]byte(key), nil)
+func (c *Cache) Delete(key string) error {
+	return c.db.Delete([]byte(key), nil)
 }
 
 // New returns a new Cache that will store leveldb in path
@@ -46,6 +49,6 @@ func New(path string) (*Cache, error) {
 
 // NewWithDB returns a new Cache using the provided leveldb as underlying
 // storage.
-func NewWithDB(db *leveldb.DB) *Cache {
+func NewWithDB(db *leveldb.DB) httpcache.Cache {
 	return &Cache{db}
 }

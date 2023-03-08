@@ -3,7 +3,6 @@
 //
 // It is only suitable for use as a 'private' cache (i.e. for a web-browser or an API-client
 // and not for a shared proxy).
-//
 package httpcache
 
 import (
@@ -31,11 +30,11 @@ const (
 type Cache interface {
 	// Get returns the []byte representation of a cached response and a bool
 	// set to true if the value isn't empty
-	Get(key string) (responseBytes []byte, ok bool)
+	Get(key string) (responseBytes []byte, ok bool, err error)
 	// Set stores the []byte representation of a response against a key
-	Set(key string, responseBytes []byte)
+	Set(key string, responseBytes []byte) error
 	// Delete removes the value associated with the key
-	Delete(key string)
+	Delete(key string) error
 }
 
 // cacheKey returns the cache key for req.
@@ -50,7 +49,10 @@ func cacheKey(req *http.Request) string {
 // CachedResponse returns the cached http.Response for req if present, and nil
 // otherwise.
 func CachedResponse(c Cache, req *http.Request) (resp *http.Response, err error) {
-	cachedVal, ok := c.Get(cacheKey(req))
+	cachedVal, ok, err := c.Get(cacheKey(req))
+	if err != nil {
+		return nil, err
+	}
 	if !ok {
 		return
 	}
@@ -66,25 +68,27 @@ type MemoryCache struct {
 }
 
 // Get returns the []byte representation of the response and true if present, false if not
-func (c *MemoryCache) Get(key string) (resp []byte, ok bool) {
+func (c *MemoryCache) Get(key string) (resp []byte, ok bool, err error) {
 	c.mu.RLock()
 	resp, ok = c.items[key]
 	c.mu.RUnlock()
-	return resp, ok
+	return resp, ok, nil
 }
 
 // Set saves response resp to the cache with key
-func (c *MemoryCache) Set(key string, resp []byte) {
+func (c *MemoryCache) Set(key string, resp []byte) error {
 	c.mu.Lock()
 	c.items[key] = resp
 	c.mu.Unlock()
+	return nil
 }
 
 // Delete removes key from the cache
-func (c *MemoryCache) Delete(key string) {
+func (c *MemoryCache) Delete(key string) error {
 	c.mu.Lock()
 	delete(c.items, key)
 	c.mu.Unlock()
+	return nil
 }
 
 // NewMemoryCache returns a new Cache that will store items in an in-memory map
