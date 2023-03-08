@@ -147,8 +147,8 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if cacheable {
 		cachedResp, err = CachedResponse(t.Cache, req)
 	} else {
-		// Need to invalidate an existing value
-		t.Cache.Delete(cacheKey)
+		// Need to invalidate an existing value - ignore any errors
+		_ = t.Cache.Delete(cacheKey)
 	}
 
 	transport := t.Transport
@@ -204,7 +204,8 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 			return cachedResp, nil
 		} else {
 			if err != nil || resp.StatusCode != http.StatusOK {
-				t.Cache.Delete(cacheKey)
+				// Ignore error - upstream already caused an error
+				_ = t.Cache.Delete(cacheKey)
 			}
 			if err != nil {
 				return nil, err
@@ -241,18 +242,21 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 					resp.Body = ioutil.NopCloser(r)
 					respBytes, err := httputil.DumpResponse(&resp, true)
 					if err == nil {
-						t.Cache.Set(cacheKey, respBytes)
+						// Ignore return error the entry will just not have been cached
+						_ = t.Cache.Set(cacheKey, respBytes)
 					}
 				},
 			}
 		default:
 			respBytes, err := httputil.DumpResponse(resp, true)
 			if err == nil {
-				t.Cache.Set(cacheKey, respBytes)
+				// Ignore return error the entry will just not have been cached
+				_ = t.Cache.Set(cacheKey, respBytes)
 			}
 		}
 	} else {
-		t.Cache.Delete(cacheKey)
+		// Ignore any errors
+		_ = t.Cache.Delete(cacheKey)
 	}
 	return resp, nil
 }

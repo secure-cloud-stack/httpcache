@@ -16,7 +16,7 @@ func Cache(t *testing.T, cache httpcache.Cache) {
 	}
 
 	val := []byte("some bytes")
-	cache.Set(key, val)
+	_ = cache.Set(key, val)
 
 	retVal, ok, _ := cache.Get(key)
 	if !ok {
@@ -26,7 +26,7 @@ func Cache(t *testing.T, cache httpcache.Cache) {
 		t.Fatal("retrieved a different value than what we put in")
 	}
 
-	cache.Delete(key)
+	_ = cache.Delete(key)
 
 	_, ok, _ = cache.Get(key)
 	if ok {
